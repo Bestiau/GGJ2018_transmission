@@ -5,8 +5,10 @@
 
 #include "core.h"
 
-
+void ligne(int x1, int y1, int x2, int y2, Uint32 r,  Uint32 g,  Uint32 b);
 SDL_Surface *cursor = NULL;
+SDL_Surface *pinhole = NULL;
+SDL_Surface *SplashImage = NULL;
 
 SDL_Surface* LoadImage(char* fileName)
 {
@@ -34,7 +36,14 @@ SDL_Surface* LoadImage(char* fileName)
 
     return processedImage;
 }
+void DrawImage(SDL_Surface* image, SDL_Surface* destSurface, int x, int y)
+{
+    SDL_Rect destRect;
+    destRect.x = x;
+    destRect.y = y;
 
+    SDL_BlitSurface( image, NULL, destSurface, &destRect);
+}
 void DrawFrame(SDL_Surface *surface, SDL_Surface *dst, int x, int y, int w, int h, int frame)
 {
     SDL_Rect destPos;
@@ -48,6 +57,17 @@ void DrawFrame(SDL_Surface *surface, SDL_Surface *dst, int x, int y, int w, int 
     cutPos.w = w;
     cutPos.h = h;
     SDL_BlitSurface(surface, &cutPos, dst, &destPos);
+}
+
+void drawMap()
+{
+    for(int y = 0; y < 10;++y )
+    {
+        for(int x = 0; x < 10; x++)
+        {
+            DrawImage(pinhole, Backbuffer, x * 32, y * 32);
+        }
+    }
 }
 
 void FillRect(SDL_Surface *surface, int x, int y, int w, int h, Uint8 r, Uint8 g, Uint8 b)
@@ -129,14 +149,7 @@ void DrawText(SDL_Surface *font, SDL_Surface *dst, int x, int y, char str[], int
     }
 }
 
-void DrawImage(SDL_Surface* image, SDL_Surface* destSurface, int x, int y)
-{
-    SDL_Rect destRect;
-    destRect.x = x;
-    destRect.y = y;
 
-    SDL_BlitSurface( image, NULL, destSurface, &destRect);
-}
 
 void DrawImageFrame(SDL_Surface* image, SDL_Surface* destSurface, int x, int y, int width, int height, int frame)
 {
@@ -251,6 +264,8 @@ void FreeGame()
 bool LoadFiles()
 {
     cursor = LoadImage("assets/cursor.png");
+    pinhole = LoadImage("assets/hole.png");
+    SplashImage = LoadImage("assets/splash.png");
 }
 
 
@@ -258,6 +273,7 @@ bool InitGame()
 {
     if(!InitSDL())
         return false;
+
 
     SDL_ShowCursor(SDL_DISABLE);
     LoadFiles();
@@ -275,9 +291,11 @@ bool InitGame()
 
 void DrawSplash()
 {
-    //DrawImage(SplashImage, Backbuffer, 0, 0);
+
     FillRect(Backbuffer, 0, 0, 640, 480, 150, 150, 255);
+    DrawImage(SplashImage, Backbuffer, 0, 0);
     int x, y;
+    ligne(0,0,50,136,255,255,0);
     SDL_GetMouseState(&x, &y);
     DrawImage(cursor, Backbuffer, x, y);
 }
@@ -302,6 +320,77 @@ void RunGame()
 }
 
 
+void echangerEntiers(int* x, int* y)
+{
+  int t = *x;
+  *x = *y;
+  *y = t;
+}
+
+void ligne(int x1, int y1, int x2, int y2, Uint32 r,  Uint32 g,  Uint32 b)
+{
+  int d, dx, dy, aincr, bincr, xincr, yincr, x, y;
+
+  if (abs(x2 - x1) < abs(y2 - y1)) {
+    /* parcours par l'axe vertical */
+
+    if (y1 > y2) {
+      echangerEntiers(&x1, &x2);
+      echangerEntiers(&y1, &y2);
+    }
+
+    xincr = x2 > x1 ? 1 : -1;
+    dy = y2 - y1;
+    dx = abs(x2 - x1);
+    d = 2 * dx - dy;
+    aincr = 2 * (dx - dy);
+    bincr = 2 * dx;
+    x = x1;
+    y = y1;
+
+    DrawPixel(Backbuffer, x, y , r, g, b);
+
+    for (y = y1+1; y <= y2; ++y) {
+      if (d >= 0) {
+	x += xincr;
+	d += aincr;
+      } else
+	d += bincr;
+
+          DrawPixel(Backbuffer, x, y , r, g, b);
+    }
+
+  } else {
+    /* parcours par l'axe horizontal */
+
+    if (x1 > x2) {
+      echangerEntiers(&x1, &x2);
+      echangerEntiers(&y1, &y2);
+    }
+
+    yincr = y2 > y1 ? 1 : -1;
+    dx = x2 - x1;
+    dy = abs(y2 - y1);
+    d = 2 * dy - dx;
+    aincr = 2 * (dy - dx);
+    bincr = 2 * dy;
+    x = x1;
+    y = y1;
+
+        DrawPixel(Backbuffer, x, y , r, g, b);
+
+    for (x = x1+1; x <= x2; ++x) {
+      if (d >= 0) {
+	y += yincr;
+	d += aincr;
+      } else
+	d += bincr;
+
+          DrawPixel(Backbuffer, x, y , r, g, b);
+    }
+  }
+}
+
 void DrawScreen()
 {
     switch(gameState)
@@ -311,6 +400,10 @@ void DrawScreen()
         break;
     case GS_RUNNING:
         //DrawGame();
+        drawMap();
+            int x, y;
+    SDL_GetMouseState(&x, &y);
+    DrawImage(cursor, Backbuffer, x, y);
         break;
     case GS_GAMEOVER:
         //DrawGameOver();
